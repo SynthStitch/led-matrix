@@ -12,7 +12,7 @@ Seengreat RGB Matrix Adapter Board driving P4 32×32 HUB75 panels salvaged from 
 | Pi GPIO output | ✅ Verified (pins switch while the display runs) |
 | HAT signal path (static meter test) | ✅ Pins 3 (B1) and 10 (B) read about 4V high. Other pins not measured yet. |
 | At least one panel shows correct images | ✅ Spinning square and full-panel fills worked |
-| Frame panels (`P4-3232-2121-16S`) | ⚠️ Mostly dark, random dots or stripes. Suspected special driver chip (see [Open issues](#open-issues--next-steps)). |
+| Frame panels (`P4-3232-2121-16S`) | ⚠️ Mostly dark, random dots or stripes. Their driver chips are standard (TC7258GN + SM16106SC), so a connection or panel fault is suspected (see [Open issues](#open-issues--next-steps)). |
 | Loose 32×32 panels | ⚠️ Stripes with the 1-panel setting, even fill with the 5-panel setting. Suspected 1/8 scan. Multiplexing 0–24 didn't fix it. |
 | 5V power for the full sign | ❌ Needs an LRS-350-5 (5V 60A) |
 
@@ -162,13 +162,17 @@ The HUB75 ribbons carry data only, and their ground wires also tie the grounds t
 
 ## Open issues / next steps
 
-1. **Frame panels (`P4-3232-2121-16S`): check the driver chip.** Read the markings on the small chips in rows
-   on the back (UR/UG/UB…). If they're **FM6126A**, **FM6127** or **ICN2038S**, the panel needs a start-up sequence first:
-   ```
-   --led-panel-type=FM6126A     # or FM6127
-   ```
-   A [SmartMatrix forum thread](https://community.pixelmatix.com/t/p3-6432-2121-16s-d1-0-panels-dont-work-at-all/381)
-   describes the same symptom (good power, almost nothing lit) on a `P3-6432-2121-16S-D1.0` panel with these chips.
+1. **Frame panels (`P4-3232-2121-16S`): the driver chips are standard.** Both were read off a panel:
+   - Row driver **TC7258GN** (Fuman): an 8-channel row-select chip that decodes the address lines. It's standard and needs no setup.
+   - Colour driver **SM16106SC** (Sunmoon): a 16-channel shift-register-and-latch driver. LCSC's listing points
+     to the SM16206S as its equivalent. It's standard and needs no setup.
+
+   So `--led-panel-type=FM6126A` isn't the fix, and the default settings should drive these panels, as the magenta "6"
+   panel showed. A frame panel that shows only random dots is most likely **not getting a clean signal**. Check, in order:
+   - Test the panel on its own, with the new ribbon straight from the HAT into its **input** connector.
+   - Look for bent or recessed pins in the input connector.
+   - Try `--led-slowdown-gpio=5`.
+   - If it still fails, set it aside as a failed panel.
 2. **Loose 1/8-scan panels:** try combinations, not single settings:
    - `--led-chain=2 --led-multiplexing=1..17`. Some 1/8-scan 32×32 panels behave like two chained panels.
    - `--led-row-addr-type=0..5` combined with the multiplexing settings.
