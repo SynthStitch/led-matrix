@@ -1,0 +1,229 @@
+# LED Matrix Sign: Troubleshooting Log
+
+Bring-up session from 2026-09-29 to 2026-09-30 (overnight). This covers getting a Raspberry Pi 4 and a
+Seengreat RGB Matrix Adapter Board driving P4 32×32 HUB75 panels salvaged from an Andamiro arcade unit.
+
+## Status at end of session
+
+| Area | Status |
+|---|---|
+| Pi 4 access (SSH key, new password) | ✅ Working |
+| rpi-rgb-led-matrix built and configured | ✅ Working |
+| Pi GPIO output | ✅ Verified (pins switch while the display runs) |
+| HAT signal path (static meter test) | ✅ Pins 3 (B1) and 10 (B) read about 4V high. Other pins not measured yet. |
+| At least one panel shows correct images | ✅ Spinning square and full-panel fills worked |
+| Frame panels (`P4-3232-2121-16S`) | ⚠️ Mostly dark, random dots or stripes. Suspected special driver chip (see [Open issues](#open-issues--next-steps)). |
+| Loose 32×32 panels | ⚠️ Stripes with the 1-panel setting, even fill with the 5-panel setting. Suspected 1/8 scan. Multiplexing 0–24 didn't fix it. |
+| 5V power for the full sign | ❌ Needs an LRS-350-5 (5V 60A) |
+
+---
+
+## Hardware
+
+- **Controller:** Raspberry Pi 4 Model B Rev 1.5, 1 GB of RAM
+- **HAT:** Seengreat RGB Matrix Adapter Board, Rev 3.9. It has a DC +5V barrel input, an ON/OFF switch,
+  two PWR OUT terminals and one HUB75 output.
+- **Panels:** 12 × P4 32×32 HUB75, salvaged from an Andamiro arcade dot-matrix unit
+  - Frame panels have the back label `P4-3232-2121-16S-2M-V1.0` (FYF). `2121` is the LED package size and
+    `16S` means 1/16 scan.
+  - At least some of the loose panels seem to be a different type (see below).
+- **Power:**
+  - Mean Well LRS-150-12 (12V 12.5A). **Spot LED boards only, never panels.** Its output is
+    adjustable only within about 10.2–13.8V, so it can't be set to 5V.
+  - Spare Mean Well RS-150-12, also 12V.
+  - A temporary 5V brick with a green screw-terminal breakout, used for the panels.
+- **Network:** Pi Ethernet to a USB Ethernet adapter on the laptop (`eth1`), with NetworkManager connection sharing turned on.
+
+---
+
+## Pi access
+
+### Problem 1: the laptop couldn't see the Pi over USB
+- The cable ran from one of the **Pi's USB-A ports** into the keyboard and then the laptop. A Pi 4's USB-A ports only
+  accept devices, so a computer can't see the Pi through them.
+- The Pi 4's USB-C port is for power. It only appears on a computer in gadget mode (`dwc2`), which
+  wasn't set up.
+- **Fix:** use Ethernet instead.
+
+### Problem 2: the Pi wasn't on Wi-Fi
+The SD card has **DietPi 10.2.3** (Debian 12) with first-time setup already completed:
+- `config.txt` has `dtoverlay=disable-wifi`, DietPi has Wi-Fi disabled, and no network is saved.
+- Ethernet is on (DHCP), and SSH (Dropbear) is on.
+- `user-data` on the boot partition is left over from an older "adguardpi" install. DietPi ignores it.
+
+**Fix:** Ethernet from the Pi to a USB Ethernet adapter on the laptop. The Pi was found through its automatic IPv6
+address (`fe80::…%eth1`), with no DHCP needed.
+
+### Problem 3: unknown login password
+- The default `dietpi` password and several guesses were all rejected for `root` and `dietpi`.
+- **Fix:** with the SD card in the laptop, the laptop's SSH public key was appended to `/root/.ssh/authorized_keys` on the
+  card. After that, the password was changed over SSH with `passwd`.
+- Gotcha: a long one-line `pkexec sh -c '…'` command got a line break inserted when pasted, which left `cat` sitting
+  there waiting for input. Use short single-line commands.
+
+### Problem 4: the SD card was pulled out while mounted
+- `fsck.ext4 -f` came back clean. `fsck.vfat -a` cleared the dirty bit. The boot-sector/backup
+  difference at offset 65 is just the dirty flag and is harmless.
+- `sudo` through Claude Code's `!` prefix failed because fingerprint auth timed out and there was no terminal for a password.
+  Running it in a normal terminal worked.
+
+### Internet for the Pi
+```sh
+nmcli con modify "Wired connection 2" ipv4.method shared   # laptop side
+# Pi gets 10.42.0.101 via DHCP; the laptop is 10.42.0.1
+```
+To undo it: `nmcli con modify "Wired connection 2" ipv4.method auto`
+
+---
+
+## Pi configuration for rpi-rgb-led-matrix
+
+| Change | File | Why |
+|---|---|---|
+| `dtparam=audio=on` changed to `off` | `/boot/firmware/config.txt` (backup: `config.txt.bak`) | Onboard audio conflicts with the library |
+| `blacklist snd_bcm2835` | `/etc/modprobe.d/blacklist-rgb-matrix.conf` | The driver still loaded with audio off. The library won't run with it loaded. |
+| ` isolcpus=3` appended | `/boot/firmware/cmdline.txt` (backup: `cmdline.txt.bak`) | Reserves a CPU core for the display driver to reduce flicker |
+
+Library: `/opt/rpi-rgb-led-matrix` (upstream commit `51d3231`, built with `make -C examples-api-use`).
+
+**Gotcha:** on DietPi, `/boot/config.txt` and `/boot/cmdline.txt` are **links** to `/boot/firmware/`.
+`sed -i` on the link replaced it with a plain file, so the first `isolcpus` edit had no effect.
+Always edit `/boot/firmware/…` directly. The link has been restored.
+
+**Gotcha:** `pkill -f panel-id` over SSH killed the SSH session itself, because the session's own command line
+contained "panel-id". Use `pkill -x <name>`.
+
+Known-good base flags for this HAT:
+```
+--led-rows=32 --led-cols=32 --led-gpio-mapping=regular --led-slowdown-gpio=4
+```
+
+Side note: Tailscale is installed on the Pi, and its package source is listed twice (`dietpi-tailscale.list` and
+`tailscale.list`). That's harmless, but apt prints warnings about it.
+
+---
+
+## Power
+
+### Lessons
+- **HUB75 panels are 5V.** Never connect the LRS-150-12. With Mean Well, the last number in the model is the output voltage:
+  LRS-150-**12** gives 12V, and LRS-350-**5** gives 5V.
+- **The Pi can't power panels.** A Pi 4's supply is 5V/3A, of which the Pi uses about 1A, and one 32×32 P4 panel draws up to about 4A on full white.
+- **The HAT can power about 1–2 panels at most.** One barrel jack and its circuit traces handle around 5A.
+- **Feed each panel its own power lead** from the 5V supply, joined with Wagos. Passing power from panel
+  to panel leaves the panels further down short of power. They stay dark but still pass data weakly, powered by a trickle of current from the data lines.
+- **Use a single power source.** With the 5V brick in the HAT's DC jack *and* the Pi on laptop USB-C, both supplies were
+  connected together through the Pi's 5V rail. The Pi 4 has no protection against power flowing backwards out of its USB-C port. Use one or the other.
+- **Laptop USB-C is too weak for the Pi.** It caused the `throttled=0x50000` undervoltage flags.
+- **Switch off the panel supply before plugging panels in.** Hot-plugging panels rebooted the Pi several times.
+
+### Measurements
+- With the Pi on the same line as the panels, voltage was 4.72V at the panels. That's fine for panels, but the Pi
+  flags undervoltage below about 4.63V.
+- After rewiring: solid 5V at every panel downstream.
+
+### Plan for the full sign
+```
+LRS-350-5 ─┬─ branch 1 (14 AWG, ~10A fuse) → panels 1–3
+           ├─ branch 2 → panels 4–6
+           ├─ branch 3 → panels 7–9
+           ├─ branch 4 → panels 10–12
+           └─ HAT DC jack (Pi + HAT logic only)
+```
+The HUB75 ribbons carry data only, and their ground wires also tie the grounds together.
+
+---
+
+## Panel debugging timeline
+
+1. **1 panel, spinning-square demo:** worked. This proved the pin layout (`regular`), panel size and timing.
+2. **6 panels as 192×32, Game of Life and volume bars:** only a sharp-edged 1.5-panel area lit.
+3. **Panel ID test, 6 panels:** the bottom-left showed magenta "6" (the last in the chain) correctly. #5 showed cyan stripes on its
+   left half, and #1–4 were dark.
+   - At first this was wrongly put down to "not power". It turned out to be **power**: panels 1–4 weren't wired to 5V.
+4. **Single-panel colour tests on several panels:**
+   - one showed blue on top and yellow on the bottom when it should have been red
+   - one was dark
+   - one showed fixed green stripes that **didn't change** whatever was sent. That panel wasn't receiving data. A HUB75 input connector
+     was found empty in a photo.
+5. **Panels with random dots at a solid 5V:** the frame panels show this no matter which input is used.
+6. **Pi GPIO check** (`pinctrl get`) while the display ran: all pins were outputs, row-address pins were switching, and GPIO18 was
+   running its hardware pulse. **The Pi side is fine.**
+7. **5-panel chain after a new ribbon cable:** every panel showed a 2-rows-lit, 2-rows-dark stripe pattern with wrong colours.
+   This was suspected to be a dead "B" address line on the HAT.
+8. **HAT meter test** (all 13 signal pins held high with `pinctrl set <gpio> op dh`): pin 3 (B1) read **4V**, and pin 10 (B)
+   read about the same. **The dead-B-line theory is not confirmed.** The other pins weren't measured.
+9. **Loose panel, 5-panel setting:** solid even green across the whole panel. **With the 1-panel setting: lines.**
+   That points to 1/8 scan, where each row expects twice as much data.
+10. **Multiplexing sweep 0–24 on that loose panel:** lines on every setting.
+11. **Spinning square and 3D cube demos** run on request at the end of the session.
+
+---
+
+## Open issues / next steps
+
+1. **Frame panels (`P4-3232-2121-16S`): check the driver chip.** Read the markings on the small chips in rows
+   on the back (UR/UG/UB…). If they're **FM6126A**, **FM6127** or **ICN2038S**, the panel needs a start-up sequence first:
+   ```
+   --led-panel-type=FM6126A     # or FM6127
+   ```
+   A [SmartMatrix forum thread](https://community.pixelmatix.com/t/p3-6432-2121-16s-d1-0-panels-dont-work-at-all/381)
+   describes the same symptom (good power, almost nothing lit) on a `P3-6432-2121-16S-D1.0` panel with these chips.
+2. **Loose 1/8-scan panels:** try combinations, not single settings:
+   - `--led-chain=2 --led-multiplexing=1..17`. Some 1/8-scan 32×32 panels behave like two chained panels.
+   - `--led-row-addr-type=0..5` combined with the multiplexing settings.
+3. **Finish the HAT meter test:** measure every signal pin high, then all low (to catch pins stuck high). The HUB75 pinout is in
+   [Reference](#reference).
+4. **Buy an LRS-350-5** (5V 60A) for the full sign.
+5. **Turn Wi-Fi on** (`dietpi-config` → Network Options: Adapters), so the Pi doesn't need the Ethernet cable to the laptop.
+6. **Spot LED dimming (optional):**
+   - Use a MOSFET rated for 3.3V gate drive (IRLB8721 / IRL3705N), not an IRLZ44N or AO3400 at about 10A.
+   - Add a 100Ω gate resistor and a 10kΩ pull-down.
+   - Or use a PCA9685 I²C PWM board, which avoids GPIO conflicts with the matrix library.
+
+---
+
+## Test programs
+
+These are in [`test-programs/`](test-programs/) and are built on the Pi with `./build.sh`, which needs the library in `/opt/rpi-rgb-led-matrix`.
+
+| Program | What it shows | Example |
+|---|---|---|
+| `panel-id` | Each chained panel a solid colour (1 red, 2 green, 3 blue, 4 yellow, 5 cyan, 6 magenta) with its number | `./panel-id --led-chain=6 --led-slowdown-gpio=4 --led-brightness=20` |
+| `color-cycle` | The whole display red, then green, blue and white, 4 s each | `./color-cycle --led-chain=1 --led-slowdown-gpio=4 --led-brightness=20` |
+| `mux-test` | Red fill, white border and a text label | `./mux-test --led-chain=1 --led-multiplexing=3 "3"` |
+| `mux-sweep.sh` | Runs `mux-test` through multiplexing settings 0–24, 5 s each, labelled | `nohup ./mux-sweep.sh &` (progress is in `/tmp/mux-now`) |
+
+Library demos: `examples-api-use/demo -D0` (spinning square), `-D7` (Game of Life), `-D9` (volume bars), `-D12` (3D cube).
+
+---
+
+## Reference
+
+### HUB75 pinout (as on the panel silkscreen) with "regular" GPIO mapping
+
+| Pin | Signal | GPIO | | Pin | Signal | GPIO |
+|---|---|---|---|---|---|---|
+| 1 | R1 | 11 | | 2 | G1 | 27 |
+| 3 | B1 | 7 | | 4 | GND | – |
+| 5 | R2 | 8 | | 6 | G2 | 9 |
+| 7 | B2 | 10 | | 8 | E / GND | 15 |
+| 9 | A | 22 | | 10 | B | 23 |
+| 11 | C | 24 | | 12 | D | 25 |
+| 13 | CLK | 17 | | 14 | LAT | 4 |
+| 15 | OE | 18 | | 16 | GND | – |
+
+### `vcgencmd get_throttled`
+- `0x0`: no problems since boot
+- `0x50000`: undervoltage **and** throttling have happened at some point since boot. The low bits being 0 means it's not happening now.
+
+### Spot LED boards (Andamiro AZZZ0PCB191)
+- 12V, not addressable, 26 white 5050 LEDs: 8 strings of 3 through 68Ω, plus 1 string of 2 through 150Ω.
+- About 0.36A (about 4.3W) per board, so the LRS-150-12 can run about 26 boards at an 80% load limit.
+
+### Sources
+- [hzeller/rpi-rgb-led-matrix README](https://github.com/hzeller/rpi-rgb-led-matrix/blob/master/README.md)
+- [Issue #66: 32×32 panels with 1:8 scan](https://github.com/hzeller/rpi-rgb-led-matrix/issues/66)
+- [Issue #910: P4 outdoor panel, lower half not working](https://github.com/hzeller/rpi-rgb-led-matrix/issues/910)
+- [Issue #948: P4-2121-64×32-16S-HL1](https://github.com/hzeller/rpi-rgb-led-matrix/issues/948)
+- [SmartMatrix: P3-6432-2121-16S-D1.0 panels don't work at all](https://community.pixelmatix.com/t/p3-6432-2121-16s-d1-0-panels-dont-work-at-all/381)
