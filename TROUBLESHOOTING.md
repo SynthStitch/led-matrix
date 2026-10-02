@@ -258,9 +258,15 @@ With the **HAT removed**, all 13 matrix GPIOs (4, 7, 8, 9, 10, 11, 17, 18, 22, 2
 and pull-up and pull-down, correctly. **The Pi's GPIO is fine. The Seengreat HAT drives lines back toward the Pi, so it's faulty.**
 
 - Keep the HAT off the Pi.
-- Optional free check: flip the HAT's ON/OFF switch (the board also supports a Pico), refit it, and rerun the pin readback.
+- The HAT has **no ON/OFF switch** (an earlier note misread the silkscreen). With the HAT refitted, the pin readback again showed **GPIO27 stuck high** while the other 12 pins followed. **Conclusion: the HAT is faulty.**
 - Replacement: Adafruit RGB Matrix Bonnet with `--led-gpio-mapping=adafruit-hat`, or another Seengreat board with `regular`.
 - Interim: wire the Pi straight to a panel with jumper wires (the library's "regular" wiring) to confirm the panels work.
+  - Use M-F jumpers, from the Pi header into the holes of a ribbon's loose end; the ribbon's other end goes into the panel.
+  - Find the GND column with a continuity beep to the panel's GND terminal. If the columns are swapped, Pi outputs end up
+    shorted to GND, so check this first.
+  - Results so far: the patterns differed from panel to panel with the same wiring. The likely reason: the panel's 74HC245
+    inputs need about 3.5V at a 5V supply, and the Pi only gives 3.3V. Trimming the LRS-50-5 down to about 4.5V
+    (V ADJ) lowers the threshold to about 3.15V and should give a valid test.
 
 Pin readback used for this test (run on the Pi):
 ```sh
