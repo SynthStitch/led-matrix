@@ -10,10 +10,10 @@ Seengreat RGB Matrix Adapter Board driving P4 32×32 HUB75 panels salvaged from 
 | Pi 4 access (SSH key, new password) | ✅ Working |
 | rpi-rgb-led-matrix built and configured | ✅ Working |
 | Pi GPIO output | ✅ Verified (pins switch while the display runs) |
-| HAT signal path (static meter test) | ✅ Pins 3 (B1) and 10 (B) read about 4V high. Other pins not measured yet. |
+| HAT signal path | ❌ **Fault found:** with every Pi pin set low, G1 reads 4.8V (stuck high), and G2 and B read 1.4V (floating). GPIO27 (G1) reads high even while the Pi drives it low. Next: test the bare Pi without the HAT. |
 | At least one panel shows correct images | ✅ Spinning square and full-panel fills worked |
 | Frame panels (`P4-3232-2121-16S`) | ⚠️ Mostly dark, random dots or stripes. Their driver chips are standard (TC7258GN + SM16106SC), so a connection or panel fault is suspected (see [Open issues](#open-issues--next-steps)). |
-| Loose 32×32 panels | ⚠️ Stripes with the 1-panel setting, even fill with the 5-panel setting. Suspected 1/8 scan. Multiplexing 0–24 didn't fix it. |
+| Loose 32×32 panels | ℹ️ Same model as the frame panels (`P4-3232-2121-16S-2M-V1.0`, standard 1/16 scan). Their stripes come from the signal fault above, not the panel type. |
 | 5V power for the full sign | ❌ Needs an LRS-350-5 (5V 60A) |
 
 ---
@@ -157,6 +157,26 @@ The HUB75 ribbons carry data only, and their ground wires also tie the grounds t
    That points to 1/8 scan, where each row expects twice as much data.
 10. **Multiplexing sweep 0–24 on that loose panel:** lines on every setting.
 11. **Spinning square and 3D cube demos** run on request at the end of the session.
+
+### Session 2 (2026-10-01)
+
+12. **Chain-length fill test (1–5) on a loose panel:** none filled evenly. Yellow and white came out green and cyan, so **red never appeared**.
+13. **Meter checks, all pins high:** R1 and R2 read 5V at the HAT and at the far end of the ribbon.
+    - Gotcha: looking into the ribbon's loose end, its holes are **mirrored** compared with the connector diagram. The early 1.15V readings came from probing the wrong holes.
+    - Gotcha: the pin diagram used numbers pins chip-style (1–8 down the left side, 9–16 up the right), not ribbon-style. Go by the labels.
+14. **Signal-speed sweep** (slowdown 4, 5, 6 and 8, yellow fill): identical green stripes every time, so speed isn't the cause.
+15. **Back of a loose panel:** the same `P4-3232-2121-16S-2M-V1.0` board as the frame panels.
+    - Its connectors are labelled INPUT1 (left, next to the 74HC245 buffers U1 and U2) and INPUT2 (right, the one with the pin labels).
+    - Moving the ribbon to INPUT1 didn't change anything.
+16. **Seengreat wiki:** the board's Pi pin layout is the standard **"regular"** mapping, so the software settings are correct.
+17. **Meter checks, all pins low** (the first time this was done): **G1 = 4.8V, G2 = 1.4V, B = 1.4V**, when all should be 0V.
+    - On the Pi, `pinctrl` shows GPIO27 (G1) reading **hi while set to output low**, meaning something is driving that line against the Pi.
+    - All matrix pins were then left as inputs to stop the outputs fighting.
+    - **This explains the symptoms:** G1 stuck on gives green everywhere, and a floating B address line gives the 2-on, 2-off stripes.
+    - The earlier tests missed it because they only ever held every pin high at once.
+18. **Next:** run the bare Pi with no HAT and check that GPIO27, 9 and 23 follow what the Pi sets.
+    - If they do, the HAT is faulty: replace it.
+    - If not, the Pi's GPIO is damaged, possibly from the time the laptop and the 5V adapter were both powering the Pi.
 
 ---
 
