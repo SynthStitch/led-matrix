@@ -9,8 +9,8 @@ Seengreat RGB Matrix Adapter Board driving P4 32×32 HUB75 panels salvaged from 
 |---|---|
 | Pi 4 access (SSH key, new password) | ✅ Working |
 | rpi-rgb-led-matrix built and configured | ✅ Working |
-| Pi GPIO output | ✅ Verified (pins switch while the display runs) |
-| HAT signal path | ❌ **Fault found:** with every Pi pin set low, G1 reads 4.8V (stuck high), and G2 and B read 1.4V (floating). GPIO27 (G1) reads high even while the Pi drives it low. Next: test the bare Pi without the HAT. |
+| Pi GPIO output | ✅ Verified with no HAT fitted: all 13 matrix pins follow high and low and both pulls (2026-10-01) |
+| HAT signal path | ❌ **Fault found:** with every Pi pin set low, G1 reads 4.8V (stuck high), and G2 and B read 1.4V (floating). GPIO27 (G1) reads high even while the Pi drives it low. **The bare Pi passes on all 13 pins, so the HAT is faulty.** Replace it. |
 | At least one panel shows correct images | ✅ Spinning square and full-panel fills worked |
 | Frame panels (`P4-3232-2121-16S`) | ⚠️ Mostly dark, random dots or stripes. Their driver chips are standard (TC7258GN + SM16106SC), so a connection or panel fault is suspected (see [Open issues](#open-issues--next-steps)). |
 | Loose 32×32 panels | ℹ️ Same model as the frame panels (`P4-3232-2121-16S-2M-V1.0`, standard 1/16 scan). Their stripes come from the signal fault above, not the panel type. |
@@ -251,3 +251,22 @@ Library demos: `examples-api-use/demo -D0` (spinning square), `-D7` (Game of Lif
 - [Issue #910: P4 outdoor panel, lower half not working](https://github.com/hzeller/rpi-rgb-led-matrix/issues/910)
 - [Issue #948: P4-2121-64×32-16S-HL1](https://github.com/hzeller/rpi-rgb-led-matrix/issues/948)
 - [SmartMatrix: P3-6432-2121-16S-D1.0 panels don't work at all](https://community.pixelmatix.com/t/p3-6432-2121-16s-d1-0-panels-dont-work-at-all/381)
+
+### Result (2026-10-01)
+
+With the **HAT removed**, all 13 matrix GPIOs (4, 7, 8, 9, 10, 11, 17, 18, 22, 23, 24, 25, 27) followed output high and low,
+and pull-up and pull-down, correctly. **The Pi's GPIO is fine. The Seengreat HAT drives lines back toward the Pi, so it's faulty.**
+
+- Keep the HAT off the Pi.
+- Optional free check: flip the HAT's ON/OFF switch (the board also supports a Pico), refit it, and rerun the pin readback.
+- Replacement: Adafruit RGB Matrix Bonnet with `--led-gpio-mapping=adafruit-hat`, or another Seengreat board with `regular`.
+- Interim: wire the Pi straight to a panel with jumper wires (the library's "regular" wiring) to confirm the panels work.
+
+Pin readback used for this test (run on the Pi):
+```sh
+for g in 4 7 8 9 10 11 17 18 22 23 24 25 27; do
+  pinctrl set $g op dh; h=$(pinctrl lev $g); pinctrl set $g op dl; l=$(pinctrl lev $g)
+  pinctrl set $g ip pu; u=$(pinctrl lev $g); pinctrl set $g ip pd; d=$(pinctrl lev $g); pinctrl set $g ip pn
+  echo "GPIO$g high:$h low:$l pu:$u pd:$d"   # healthy = 1 0 1 0
+done
+```
