@@ -202,6 +202,13 @@ library's `regular` mapping. A, B, C and D are shared by all three ports.
       riser can hold it up. Use a low-profile heatsink or the 2×20 riser header (Adafruit 4079).
     - The 2-rows-on, 2-rows-off pattern in session 1 may have had the same cause.
     - Hot-plugging with the panel powered rebooted the Pi twice more. Switch the panel supply off first.
+25. **Six-panel frame working.** It is two rows of three panels, one row per Bonnet port: the top row on port 3 and
+    the bottom row on port 2. Both rows are mounted upside down. One 180° rotation fixes the whole image:
+    ```
+    --led-rows=32 --led-cols=32 --led-chain=3 --led-parallel=3 --led-gpio-mapping=regular --led-slowdown-gpio=4 --led-pixel-mapper=Rotate:180
+    ```
+    The canvas is 96×96, and only its top 96×64 is visible (port 1 is empty). Moving the ribbons to ports 2 (top)
+    and 1 (bottom) would allow `--led-parallel=2` and a 96×64 canvas with nothing drawn off-screen.
 
 ## Open issues / next steps
 
@@ -236,7 +243,7 @@ These are in [`test-programs/`](test-programs/) and are built on the Pi with `./
 
 | Program | What it shows | Example |
 |---|---|---|
-| `panel-id` | Each chained panel a solid colour (1 red, 2 green, 3 blue, 4 yellow, 5 cyan, 6 magenta) with its number | `./panel-id --led-chain=6 --led-slowdown-gpio=4 --led-brightness=20` |
+| `panel-id` | Each panel a solid colour (1 red, 2 green, 3 blue, 4 yellow, 5 cyan, 6 magenta, then repeating) with its number, counted along the chain and then port by port | `./panel-id --led-chain=6 --led-slowdown-gpio=4 --led-brightness=20` |
 | `color-cycle` | The whole display red, then green, blue and white, 4 s each | `./color-cycle --led-chain=1 --led-slowdown-gpio=4 --led-brightness=20` |
 | `mux-test` | Red fill, white border and a text label | `./mux-test --led-chain=1 --led-multiplexing=3 "3"` |
 | `mux-sweep.sh` | Runs `mux-test` through multiplexing settings 0–24, 5 s each, labelled | `nohup ./mux-sweep.sh &` (progress is in `/tmp/mux-now`) |
