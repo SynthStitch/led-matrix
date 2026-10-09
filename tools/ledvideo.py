@@ -5,6 +5,7 @@
     python ledvideo.py input.mp4 --crop           -> fill the frame instead, cutting off the edges
     python ledvideo.py input.mp4 --stretch        -> squash or stretch the whole picture to fill the frame
     python ledvideo.py input.mp4 --size 96x64 --fps 24 --start 10 --length 30
+    python ledvideo.py input.mp4 --speed 0.5      -> plays at half speed (same frames, shown more slowly)
 
 Then copy it to the Pi; the `sign` menu lists everything in that folder as "Video: <name>":
     ssh pi "mkdir -p /opt/signtest/videos && cat > /opt/signtest/videos/NAME.ledv" < NAME.ledv
@@ -22,7 +23,7 @@ import tempfile
 MAGIC = b"LEDV"
 
 
-def convert(src, dst, w, h, fps, crop=False, start=None, length=None, stretch=False):
+def convert(src, dst, w, h, fps, crop=False, start=None, length=None, stretch=False, speed=1.0):
     if stretch:
         fit = f"scale={w}:{h}:flags=area"
     elif crop:
@@ -37,7 +38,7 @@ def convert(src, dst, w, h, fps, crop=False, start=None, length=None, stretch=Fa
         cmd += ["-t", str(length)]
     cmd += ["-an", "-vf", fit, "-r", str(fps), "-f", "rawvideo", "-pix_fmt", "rgb24", "-"]
     with open(dst, "wb") as out:
-        out.write(MAGIC + struct.pack("<HHH", w, h, fps))
+        out.write(MAGIC + struct.pack("<HHH", w, h, max(1, round(fps * speed))))  # playback rate: speed scales it
         out.flush()
         subprocess.run(cmd, stdout=out, check=True)
     return (os.path.getsize(dst) - 10) // (w * h * 3)
@@ -67,13 +68,14 @@ def main():
     ap.add_argument("--fps", type=int, default=30)
     ap.add_argument("--crop", action="store_true", help="fill the frame, cutting off edges, instead of black bars")
     ap.add_argument("--stretch", action="store_true", help="squash or stretch the whole picture to fill the frame")
+    ap.add_argument("--speed", type=float, default=1.0, help="playback speed, e.g. 0.5 for half speed")
     ap.add_argument("--start", type=float, help="start this many seconds in")
     ap.add_argument("--length", type=float, help="keep only this many seconds")
     a = ap.parse_args()
     w, h = (int(n) for n in a.size.lower().split("x"))
     out = a.output or os.path.splitext(a.input)[0] + ".ledv"
-    frames = convert(a.input, out, w, h, a.fps, a.crop, a.start, a.length, a.stretch)
-    print(f"{out}: {frames} frames, {frames / a.fps:.1f} s, {os.path.getsize(out) / 1e6:.1f} MB")
+    frames = convert(a.input, out, w, h, a.fps, a.crop, a.start, a.length, a.stretch, a.speed)
+    print(f"{out}: {frames} frames, plays for {frames / max(1, round(a.fps * a.speed)):.1f} s, {os.path.getsize(out) / 1e6:.1f} MB")
 
 
 if __name__ == "__main__":
