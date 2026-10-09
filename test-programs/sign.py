@@ -4,8 +4,13 @@ import curses, subprocess, time
 
 LIB = "/opt/rpi-rgb-led-matrix"
 EX = LIB + "/examples-api-use"
-FLAGS = ["--led-rows=32", "--led-cols=32", "--led-chain=3", "--led-parallel=3", "--led-gpio-mapping=regular",
-         "--led-slowdown-gpio=4", "--led-pixel-mapper=Rotate:180"]
+CONF = "/opt/signtest/sign.conf"  # this sign's panel flags; see sign.conf.example
+
+def load_flags():
+    with open(CONF) as f:
+        return " ".join(line.split("#")[0] for line in f).split()
+
+FLAGS = load_flags()
 # Matches every sign program by its path (anchored, so this menu itself never matches).
 # Names alone fail: pkill -x only sees the first 15 characters ("scrolling-text-").
 PATTERN = "^/opt/(rpi-rgb-led-matrix|signtest)/"

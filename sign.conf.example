@@ -1,0 +1,11 @@
+# Panel flags for this sign, read by `sign` (the menu). setup.sh copies this to /opt/signtest/sign.conf.
+# One or more flags per line; anything after # is ignored. Find your layout with panel-id (see CLAUDE.md).
+#
+# This is SynthStitch's frame: two rows of three P4 32x32 panels on an Adafruit Triple LED Matrix Bonnet,
+# top row on port 3, bottom row on port 2, both mounted upside down.
+--led-rows=32 --led-cols=32
+--led-chain=3          # panels per port
+--led-parallel=3       # ports in use; must reach the highest port with panels on it
+--led-gpio-mapping=regular   # Triple Bonnet, Seengreat, Electrodragon. Single Adafruit HAT/Bonnet: adafruit-hat
+--led-slowdown-gpio=4  # Pi 4. Raise it if the image has random pixels
+--led-pixel-mapper=Rotate:180
