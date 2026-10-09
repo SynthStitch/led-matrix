@@ -26,6 +26,7 @@ ITEMS = [
     ("Plasma",               aop("PlasmaAnimation")),
     ("Fireworks",            aop("FireWorks2")),
     ("Pac-Man",              ["/opt/signtest/pacman", "64"]),  # 64 = visible rows: port 1 is empty on this frame
+    ("Tetris",               ["/opt/signtest/tetris", "64"]),
     ("Game of Life",         demo(7, "-m", "80")),
     ("Colour evolution",     demo(10, "-m", "30")),
     ("Sandpile",             demo(6, "-m", "10")),
