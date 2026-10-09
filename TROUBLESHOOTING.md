@@ -10,7 +10,8 @@ Seengreat RGB Matrix Adapter Board driving P4 32×32 HUB75 panels salvaged from 
 | Pi 4 access (SSH key, new password) | ✅ Working |
 | rpi-rgb-led-matrix built and configured | ✅ Working |
 | Pi GPIO output | ✅ Verified with no HAT fitted: all 13 matrix pins follow high and low and both pulls (2026-10-01) |
-| HAT signal path | ❌ **Fault found:** with every Pi pin set low, G1 reads 4.8V (stuck high), and G2 and B read 1.4V (floating). GPIO27 (G1) reads high even while the Pi drives it low. **The bare Pi passes on all 13 pins, so the HAT is faulty.** Replace it. |
+| Driver board | ✅ **Replaced (2026-10-08)** with an Adafruit Triple LED Matrix Bonnet (product 6358), `--led-gpio-mapping=regular`. A loose panel shows full-screen colour fills on port 3. See [Session 3](#session-3-2026-10-08). |
+| Old Seengreat HAT | ❌ **Fault found:** with every Pi pin set low, G1 reads 4.8V (stuck high), and G2 and B read 1.4V (floating). GPIO27 (G1) reads high even while the Pi drives it low. **The bare Pi passes on all 13 pins, so the HAT is faulty.** Replace it. |
 | At least one panel shows correct images | ✅ Spinning square and full-panel fills worked |
 | Frame panels (`P4-3232-2121-16S`) | ⚠️ Mostly dark, random dots or stripes. Their driver chips are standard (TC7258GN + SM16106SC), so a connection or panel fault is suspected (see [Open issues](#open-issues--next-steps)). |
 | Loose 32×32 panels | ℹ️ Same model as the frame panels (`P4-3232-2121-16S-2M-V1.0`, standard 1/16 scan). Their stripes come from the signal fault above, not the panel type. |
@@ -180,6 +181,28 @@ The HUB75 ribbons carry data only, and their ground wires also tie the grounds t
 
 ---
 
+### Session 3 (2026-10-08)
+
+New board: Adafruit Triple LED Matrix Bonnet (three HUB75 ports, 74AHCT245 level shifters). Its pinout is the
+library's `regular` mapping. A, B, C and D are shared by all three ports.
+
+19. **Fresh install on the AdGuard SD card.** The Pi had no internet, so the compiler packages were downloaded on the
+    laptop and installed with `dpkg -i`. The library and these test programs were copied over SSH and built on the Pi.
+20. **Pin readback with the Bonnet fitted:** all 13 pins pass, so the Bonnet doesn't drive back into the Pi.
+21. **Colour cycle:** red, green, blue and white all correct (the old G1 fault is gone), but only 8 of 32 rows lit.
+    `row-test` showed the panel is mounted upside down, and the lit rows were the ones where B and D are both 0.
+22. **Ruled out, one at a time:** port (moved to port 3), ribbon (swapped), panel (swapped), Pi GPIO (sampled A–D while
+    the display ran: all 16 combinations appear), Bonnet output (B and D read 5V at the port when held high, and B
+    flips 0–5V at the port with the ribbon unplugged), E line shorted to GND (driven low, no change), and all six
+    `--led-row-addr-type` settings (none fill the panel).
+23. Moving the ribbon to the panel's other connector fixed D but not B (2 rows on, 2 off).
+24. **Root cause: the Bonnet wasn't fully seated on the Pi header.** A heatsink on the Pi held it up, so some header
+    pins (including B, GPIO23, and D, GPIO25) only touched intermittently. **With the Bonnet pressed fully down: full-screen fills.**
+    - Lesson: before tracing a panel, check the HAT sits flat on the header. A heatsink, the Pi 4's PoE pins or a
+      riser can hold it up. Use a low-profile heatsink or the 2×20 riser header (Adafruit 4079).
+    - The 2-rows-on, 2-rows-off pattern in session 1 may have had the same cause.
+    - Hot-plugging with the panel powered rebooted the Pi twice more. Switch the panel supply off first.
+
 ## Open issues / next steps
 
 1. **Frame panels (`P4-3232-2121-16S`): the driver chips are standard.** Both were read off a panel:
@@ -217,6 +240,9 @@ These are in [`test-programs/`](test-programs/) and are built on the Pi with `./
 | `color-cycle` | The whole display red, then green, blue and white, 4 s each | `./color-cycle --led-chain=1 --led-slowdown-gpio=4 --led-brightness=20` |
 | `mux-test` | Red fill, white border and a text label | `./mux-test --led-chain=1 --led-multiplexing=3 "3"` |
 | `mux-sweep.sh` | Runs `mux-test` through multiplexing settings 0–24, 5 s each, labelled | `nohup ./mux-sweep.sh &` (progress is in `/tmp/mux-now`) |
+| `row-test` | Lights one row (the last argument) in white, on every parallel port. Shows where each address really lands. | `./row-test --led-parallel=3 --led-gpio-mapping=regular 2` |
+| `toggle-b.sh` | Blanks the display and flips address line B once a second, for tracing B with a meter | `nohup ./toggle-b.sh 1800 &` |
+| `addr-sweep.sh` | Runs `mux-test` through `--led-row-addr-type` 0–5, 15 s each, twice | `nohup ./addr-sweep.sh &` (progress is in `/tmp/addr-now`) |
 
 Library demos: `examples-api-use/demo -D0` (spinning square), `-D7` (Game of Life), `-D9` (volume bars), `-D12` (3D cube).
 
