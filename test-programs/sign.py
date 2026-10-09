@@ -84,20 +84,32 @@ def ask(scr, prompt):
     curses.noecho(); curses.curs_set(0)
     return text
 
+def put(scr, y, x, text, attr=0):
+    # Clip to the window: curses raises if anything is drawn past the right or bottom edge.
+    h, w = scr.getmaxyx()
+    if 0 <= y < h and x < w - 1:
+        scr.addstr(y, x, text[:w - 1 - x], attr)
+
 def main(scr):
     curses.curs_set(0)
-    sel, bright, last, status = 0, 40, None, "Nothing started from this menu yet."
+    sel, top, bright, last, status = 0, 0, 40, None, "Nothing started from this menu yet."
     while True:
         scr.erase()
-        scr.addstr(0, 0, "LED sign", curses.A_BOLD)
-        scr.addstr(1, 0, "Enter run   +/- brightness   s stop   q quit (sign keeps running)")
-        for i, (name, _) in enumerate(ITEMS):
-            scr.addstr(3 + i, 2, ("> " if i == sel else "  ") + name, curses.A_REVERSE if i == sel else 0)
-        scr.addstr(4 + len(ITEMS), 0, f"Brightness {bright}%   {status}")
+        h, _ = scr.getmaxyx()
+        rows = max(1, h - 5)  # list height: title, help, blank line above; blank and status line below
+        top = min(max(top, sel - rows + 1), sel)  # scroll just enough to keep the selection in view
+        put(scr, 0, 0, "LED sign", curses.A_BOLD)
+        put(scr, 1, 0, "Enter run   +/- brightness   s stop   q quit (sign keeps running)   PgUp/PgDn scroll")
+        for row, i in enumerate(range(top, min(top + rows, len(ITEMS)))):
+            put(scr, 3 + row, 2, ("> " if i == sel else "  ") + ITEMS[i][0], curses.A_REVERSE if i == sel else 0)
+        more = f"   ({sel + 1} of {len(ITEMS)})" if len(ITEMS) > rows else ""
+        put(scr, 4 + rows, 0, f"Brightness {bright}%   {status}{more}")
         k = scr.getch()
         if k in (ord("q"), 27): return
         if k in (curses.KEY_UP, ord("k")): sel = (sel - 1) % len(ITEMS)
         elif k in (curses.KEY_DOWN, ord("j")): sel = (sel + 1) % len(ITEMS)
+        elif k == curses.KEY_PPAGE: sel = max(0, sel - rows)
+        elif k == curses.KEY_NPAGE: sel = min(len(ITEMS) - 1, sel + rows)
         elif k == ord("s"): stop(); last = None; status = "Stopped."
         elif k in (ord("+"), ord("=")) or k == ord("-"):
             bright = max(5, min(100, bright + (10 if k != ord("-") else -10)))
