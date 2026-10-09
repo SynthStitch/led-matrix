@@ -17,7 +17,7 @@ for t in g++ make python3; do command -v $t >/dev/null || need="$need $t"; done
 make -C $LIB/lib
 make -C $LIB/examples-api-use
 
-mkdir -p $OUT
+mkdir -p $OUT $OUT/videos   # videos: .ledv files from tools/ledvideo.py, listed in the menu
 cp "$HERE"/test-programs/* $OUT/
 sed -i 's/\r$//' $OUT/*.sh $OUT/*.py $OUT/*.cc   # a Windows checkout adds CRLF, which breaks sh
 (cd $OUT && sh build.sh)

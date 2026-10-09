@@ -50,6 +50,12 @@ ITEMS = [
     ("Colour cycle test",    ["/opt/signtest/color-cycle"]),
 ]
 
+# Videos converted on a PC with tools/ledvideo.py; each .ledv in this folder becomes a menu entry.
+VIDEOS = "/opt/signtest/videos"
+if os.path.isdir(VIDEOS):
+    ITEMS[:0] = [(f"Video: {os.path.splitext(f)[0]}", ["/opt/signtest/videoplay", os.path.join(VIDEOS, f)])
+                 for f in sorted(os.listdir(VIDEOS)) if f.endswith(".ledv")]
+
 def running():
     return subprocess.run(["pgrep", "-f", PATTERN], stdout=subprocess.DEVNULL).returncode == 0
 

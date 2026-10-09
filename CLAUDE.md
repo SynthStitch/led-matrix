@@ -42,6 +42,17 @@ along each chain, then port by port (port 1 first). How to read the photo:
 - **Numbers read upside down** (a 9 looks like a 6, a 7 like an L): add `--led-pixel-mapper=Rotate:180`.
 - Snaking or stacked layouts: see the `U-mapper`, `V-mapper` and `Rotate` mappers in the library README.
 
+## Videos
+
+The Pi plays videos converted on a PC (which needs Python and ffmpeg), so the Pi needs no video libraries:
+```sh
+python tools/ledvideo.py clip.mp4            # 96x96, 30 fps, black bars; --crop to fill, --size WxH for other frames
+ssh pi "cat > /opt/signtest/videos/clip.ledv" < clip.ledv
+```
+Every `.ledv` in `/opt/signtest/videos` shows up at the top of the `sign` menu as "Video: <name>" (reopen the menu
+to see new ones). `videoplay` loops it at its own frame rate. Use `--start` and `--length` to trim long videos:
+it's about 0.8 MB per second at 96x96.
+
 ## Optional: Marc Merlin's demos (Aurora, matrix rain, TwinkleFOX, fireworks)
 
 The `sign` menu lists these first. (Its Pac-Man is this repo's own `pacman`, not Merlin's, which is a few sprites circling the edge.) They come from
