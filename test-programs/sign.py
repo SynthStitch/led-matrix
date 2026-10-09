@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Pick what the LED sign shows. Arrows/j/k move, Enter runs, +/- brightness, s stops, q quits (sign keeps running)."""
-import curses, subprocess, sys
+import curses, subprocess, time
 
 LIB = "/opt/rpi-rgb-led-matrix"
 EX = LIB + "/examples-api-use"
 FLAGS = ["--led-rows=32", "--led-cols=32", "--led-chain=3", "--led-parallel=3", "--led-gpio-mapping=regular",
          "--led-slowdown-gpio=4", "--led-pixel-mapper=Rotate:180"]
-# Every program the menu may start, so starting one can stop whatever ran before.
-PROGRAMS = ["demo", "clock", "scrolling-text-example", "panel-id", "color-cycle", "row-test", "mux-test"]
+# Matches every sign program by its path (anchored, so this menu itself never matches).
+# Names alone fail: pkill -x only sees the first 15 characters ("scrolling-text-").
+PATTERN = "^/opt/(rpi-rgb-led-matrix|signtest)/"
 
 def demo(n, *extra): return [EX + "/demo", "-D", str(n), *extra]
 ITEMS = [
@@ -26,10 +27,17 @@ ITEMS = [
     ("Colour cycle test",    ["/opt/signtest/color-cycle"]),
 ]
 
+def running():
+    return subprocess.run(["pgrep", "-f", PATTERN], stdout=subprocess.DEVNULL).returncode == 0
+
 def stop():
-    for p in PROGRAMS:
-        subprocess.run(["pkill", "-x", p], stderr=subprocess.DEVNULL)
-    subprocess.run(["sleep", "0.5"])
+    # Wait for the old program to exit before starting another: two at once fight over the panels.
+    subprocess.run(["pkill", "-TERM", "-f", PATTERN])
+    for _ in range(30):
+        if not running(): return
+        time.sleep(0.1)
+    subprocess.run(["pkill", "-KILL", "-f", PATTERN])
+    time.sleep(0.5)
 
 def start(cmd, brightness):
     stop()
