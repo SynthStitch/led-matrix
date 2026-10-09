@@ -6,6 +6,7 @@
     python ledvideo.py input.mp4 --stretch        -> squash or stretch the whole picture to fill the frame
     python ledvideo.py input.mp4 --size 96x64 --fps 24 --start 10 --length 30
     python ledvideo.py input.mp4 --speed 0.5      -> plays at half speed (same frames, shown more slowly)
+    python ledvideo.py input.mp4 --black 40       -> anything this dark (0-255) turns fully off; LEDs show "near black" as a glow
 
 Then copy it to the Pi; the `sign` menu lists everything in that folder as "Video: <name>":
     ssh pi "mkdir -p /opt/signtest/videos && cat > /opt/signtest/videos/NAME.ledv" < NAME.ledv
@@ -23,13 +24,16 @@ import tempfile
 MAGIC = b"LEDV"
 
 
-def convert(src, dst, w, h, fps, crop=False, start=None, length=None, stretch=False, speed=1.0):
+def convert(src, dst, w, h, fps, crop=False, start=None, length=None, stretch=False, speed=1.0, black=0):
     if stretch:
         fit = f"scale={w}:{h}:flags=area"
     elif crop:
         fit = f"scale={w}:{h}:force_original_aspect_ratio=increase:flags=area,crop={w}:{h}"
     else:
         fit = f"scale={w}:{h}:force_original_aspect_ratio=decrease:flags=area,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2"
+    if black > 0:  # cut the dark end to true off, then stretch the rest back to full range
+        cut = f"clip((val-{black})*255/{255 - black},0,255)"
+        fit += f",format=rgb24,lutrgb=r='{cut}':g='{cut}':b='{cut}'"
     cmd = ["ffmpeg", "-v", "error"]
     if start is not None:
         cmd += ["-ss", str(start)]
@@ -69,12 +73,13 @@ def main():
     ap.add_argument("--crop", action="store_true", help="fill the frame, cutting off edges, instead of black bars")
     ap.add_argument("--stretch", action="store_true", help="squash or stretch the whole picture to fill the frame")
     ap.add_argument("--speed", type=float, default=1.0, help="playback speed, e.g. 0.5 for half speed")
+    ap.add_argument("--black", type=int, default=0, help="0-255: this dark and below becomes fully off (try 30-60)")
     ap.add_argument("--start", type=float, help="start this many seconds in")
     ap.add_argument("--length", type=float, help="keep only this many seconds")
     a = ap.parse_args()
     w, h = (int(n) for n in a.size.lower().split("x"))
     out = a.output or os.path.splitext(a.input)[0] + ".ledv"
-    frames = convert(a.input, out, w, h, a.fps, a.crop, a.start, a.length, a.stretch, a.speed)
+    frames = convert(a.input, out, w, h, a.fps, a.crop, a.start, a.length, a.stretch, a.speed, a.black)
     print(f"{out}: {frames} frames, plays for {frames / max(1, round(a.fps * a.speed)):.1f} s, {os.path.getsize(out) / 1e6:.1f} MB")
 
 
