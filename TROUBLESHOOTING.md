@@ -249,6 +249,7 @@ These are in [`test-programs/`](test-programs/) and are built on the Pi with `./
 | `mux-sweep.sh` | Runs `mux-test` through multiplexing settings 0–24, 5 s each, labelled | `nohup ./mux-sweep.sh &` (progress is in `/tmp/mux-now`) |
 | `row-test` | Lights one row (the last argument) in white, on every parallel port. Shows where each address really lands. | `./row-test --led-parallel=3 --led-gpio-mapping=regular 2` |
 | `toggle-b.sh` | Blanks the display and flips address line B once a second, for tracing B with a meter | `nohup ./toggle-b.sh 1800 &` |
+| `pacman` | Pac-Man on a random maze sized to the frame: dots, power pellets, four ghosts, a new maze per cleared board. The last argument is the visible height when the canvas is taller. `./pacman --selftest` checks the maze generator. | `./pacman <flags> 64` |
 | `sign.py` | Arrow-key menu for the six-panel frame: demos, clock, scrolling text and tests. What it starts keeps running after you quit. Installed as `sign`. | `ssh -t pi sign` |
 | `addr-sweep.sh` | Runs `mux-test` through `--led-row-addr-type` 0–5, 15 s each, twice | `nohup ./addr-sweep.sh &` (progress is in `/tmp/addr-now`) |
 

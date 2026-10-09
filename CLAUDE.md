@@ -42,9 +42,9 @@ along each chain, then port by port (port 1 first). How to read the photo:
 - **Numbers read upside down** (a 9 looks like a 6, a 7 like an L): add `--led-pixel-mapper=Rotate:180`.
 - Snaking or stacked layouts: see the `U-mapper`, `V-mapper` and `Rotate` mappers in the library README.
 
-## Optional: Marc Merlin's demos (Aurora, matrix rain, TwinkleFOX, fireworks, Pac-Man)
+## Optional: Marc Merlin's demos (Aurora, matrix rain, TwinkleFOX, fireworks)
 
-The `sign` menu lists these first. They come from
+The `sign` menu lists these first. (Its Pac-Man is this repo's own `pacman`, not Merlin's, which is a few sprites circling the edge.) They come from
 [ArduinoOnPc-FastLED-GFX-LEDMatrix](https://github.com/marcmerlin/ArduinoOnPc-FastLED-GFX-LEDMatrix), installed at
 `/opt/aop`. The menu runs `/opt/aop/examples/<Name>/<Name>` from that folder and passes no flags, because the panel
 layout is compiled in. To install on a new sign:
