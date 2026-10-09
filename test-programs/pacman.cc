@@ -13,6 +13,9 @@
 #include <vector>
 using namespace rgb_matrix;
 
+// Game speed: one tick per TICK_US. Raise it to slow everything down.
+static const int TICK_US = 35000;
+
 static volatile bool stop = false;
 static void on_sig(int) { stop = true; }
 
@@ -100,7 +103,7 @@ static void reset_positions() {
 
 static void pac_decide() {
   int c = cell_of(pac);
-  if (dots[c] == 2) for (auto &g : ghosts) if (!g.eyes) { g.scared = 400; g.dir = (g.dir + 2) % 4; }
+  if (dots[c] == 2) for (auto &g : ghosts) if (!g.eyes) { g.scared = 250; g.dir = (g.dir + 2) % 4; }
   dots[c] = 0;
   std::vector<char> danger(CW * CH, 0), none(CW * CH, 0);
   bool hunting = false;
@@ -260,7 +263,7 @@ int main(int argc, char **argv) {
     off->Clear();
     draw(off, tick, wall, mouth, show_pac);
     off = m->SwapOnVSync(off);
-    usleep(15000);
+    usleep(TICK_US);
   }
   delete m;
   return 0;
