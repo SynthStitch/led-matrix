@@ -57,7 +57,8 @@ layout is compiled in. To install on a new sign:
    `GFXDISPLAY_M<W>BY<H>` size entry next to the others, and a matching `defaults.*` block (rows, cols,
    chain_length, parallel, pixel_mapper_config, plus `pwm_bits = 7`, `pwm_lsb_nanoseconds = 100`,
    `pwm_dither_bits = 1` or it flickers). Then `mkdir -p /root/NM && echo M<W>BY<H> > /root/NM/gfxdisplay`.
-   SynthStitch's frame is `M96BY64`: rows 32, cols 32, chain 3, parallel 3, `Rotate:180`.
+   SynthStitch's frame is `M96BY96`: rows 32, cols 32, chain 3, parallel 3, `Rotate:180`. After changing the size,
+   delete each demo's `build/opt/aop/src/main.o` before `make`: the size is a `-D` flag, which make does not track.
 4. Patches needed on the Pi:
    - `src/cores/arduino/SerialConsole.cpp`, in `loadData()`: read into an `int` and `break` on `EOF`. Without it, a
      demo started with no terminal (as the menu does) queues EOF forever and hangs before drawing anything.
@@ -86,6 +87,10 @@ The full history is in [TROUBLESHOOTING.md](TROUBLESHOOTING.md). Most of a three
 ## Gotchas
 
 - **Switch the panel supply off before plugging or unplugging ribbons.** Hot-plugging rebooted the Pi repeatedly.
+- **One bad or unpowered panel can garble every port.** The ports share clock, latch and address lines, so a faulty
+  panel on one port scrambled the other two. Unplug ports one at a time to find it.
+- **Pac-Man, Tetris and the shapes take the visible height as an argument** (96 here). Use the full canvas height
+  unless a port is left empty.
 - **Only one display program at a time.** Two at once fight over the panels and look dead. `sign` stops the old one
   before starting the next. For manual runs, stop with `pkill -f "^/opt/(rpi-rgb-led-matrix|signtest)/"`.
 - **Never `pkill -f <word>` over SSH** if the word is in your own command line. It kills your SSH session.

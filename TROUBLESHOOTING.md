@@ -210,6 +210,11 @@ library's `regular` mapping. A, B, C and D are shared by all three ports.
     The canvas is 96×96, and only its top 96×64 is visible (port 1 is empty). Moving the ribbons to ports 2 (top)
     and 1 (bottom) would allow `--led-parallel=2` and a 96×64 canvas with nothing drawn off-screen.
 
+26. **Nine panels (2026-10-09).** A third row of three went on port 1. At first the new row stayed dark and the
+    original six were garbled: one bad panel in the new row was upsetting the clock, latch and address lines that all
+    three ports share. With it replaced, all nine work. The frame is now 96×96 with the same flags; the visible height
+    passed to `pacman`, `tetris` and `shaders` is 96, and Merlin's demos are rebuilt as `M96BY96`.
+
 ## Open issues / next steps
 
 1. **Frame panels (`P4-3232-2121-16S`): the driver chips are standard.** Both were read off a panel:

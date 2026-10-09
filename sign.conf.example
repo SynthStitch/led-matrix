@@ -1,8 +1,8 @@
 # Panel flags for this sign, read by `sign` (the menu). setup.sh copies this to /opt/signtest/sign.conf.
 # One or more flags per line; anything after # is ignored. Find your layout with panel-id (see CLAUDE.md).
 #
-# This is SynthStitch's frame: two rows of three P4 32x32 panels on an Adafruit Triple LED Matrix Bonnet,
-# top row on port 3, bottom row on port 2, both mounted upside down.
+# This is SynthStitch's frame: three rows of three P4 32x32 panels (96x96) on an Adafruit Triple LED Matrix
+# Bonnet, top row on port 3, middle on port 2, bottom on port 1, all mounted upside down.
 --led-rows=32 --led-cols=32
 --led-chain=3          # panels per port
 --led-parallel=3       # ports in use; must reach the highest port with panels on it
