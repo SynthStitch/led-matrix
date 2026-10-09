@@ -42,6 +42,29 @@ along each chain, then port by port (port 1 first). How to read the photo:
 - **Numbers read upside down** (a 9 looks like a 6, a 7 like an L): add `--led-pixel-mapper=Rotate:180`.
 - Snaking or stacked layouts: see the `U-mapper`, `V-mapper` and `Rotate` mappers in the library README.
 
+## Optional: Marc Merlin's demos (Aurora, matrix rain, TwinkleFOX, fireworks, Pac-Man)
+
+The `sign` menu lists these first. They come from
+[ArduinoOnPc-FastLED-GFX-LEDMatrix](https://github.com/marcmerlin/ArduinoOnPc-FastLED-GFX-LEDMatrix), installed at
+`/opt/aop`. The menu runs `/opt/aop/examples/<Name>/<Name>` from that folder and passes no flags, because the panel
+layout is compiled in. To install on a new sign:
+
+1. `git clone --recurse-submodules` it into `/opt/aop`. The `NeoMatrix_Demos_Private` submodule fails (it's private);
+   that's fine. If other submodule folders come out empty, run `git reset --hard` inside each. The demos are
+   symlinks, so clone on the Pi or copy with symlinks intact (a Windows checkout turns them into text files).
+2. `ln -s /opt/rpi-rgb-led-matrix /opt/aop/rpi-rgb-led-matrix`
+3. Add the sign's layout to `examples/FastLED_NeoMatrix_SmartMatrix_LEDMatrix_GFX_Demos/neomatrix_config.h`: a
+   `GFXDISPLAY_M<W>BY<H>` size entry next to the others, and a matching `defaults.*` block (rows, cols,
+   chain_length, parallel, pixel_mapper_config, plus `pwm_bits = 7`, `pwm_lsb_nanoseconds = 100`,
+   `pwm_dither_bits = 1` or it flickers). Then `mkdir -p /root/NM && echo M<W>BY<H> > /root/NM/gfxdisplay`.
+   SynthStitch's frame is `M96BY64`: rows 32, cols 32, chain 3, parallel 3, `Rotate:180`.
+4. Patches needed on the Pi:
+   - `src/cores/arduino/SerialConsole.cpp`, in `loadData()`: read into an `int` and `break` on `EOF`. Without it, a
+     demo started with no terminal (as the menu does) queues EOF forever and hangs before drawing anything.
+   - `makeNativeArduino.mk`: comment out `-lX11`, and on ARM filter `XWindow.cpp` and `Touch_LinuxWrapper.cpp` out of
+     `SRC_CXX`. `examples/Makefile`: comment out `FastLED_TFTWrapper_GFX`. Then no X11 packages are needed.
+5. Build each demo with `make -j3` in its folder (the first one takes a few minutes for FastLED).
+
 ## When the panels misbehave, check in this order
 
 The full history is in [TROUBLESHOOTING.md](TROUBLESHOOTING.md). Most of a three-day hunt came down to item 1.

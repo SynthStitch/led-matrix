@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Pick what the LED sign shows. Arrows/j/k move, Enter runs, +/- brightness, s stops, q quits (sign keeps running)."""
-import curses, subprocess, time
+import curses, os, subprocess, time
 
 LIB = "/opt/rpi-rgb-led-matrix"
 EX = LIB + "/examples-api-use"
@@ -13,10 +13,19 @@ def load_flags():
 FLAGS = load_flags()
 # Matches every sign program by its path (anchored, so this menu itself never matches).
 # Names alone fail: pkill -x only sees the first 15 characters ("scrolling-text-").
-PATTERN = "^/opt/(rpi-rgb-led-matrix|signtest)/"
+PATTERN = "^/opt/(rpi-rgb-led-matrix|signtest|aop)/"
+AOP = "/opt/aop/examples"  # Marc Merlin's demos (ArduinoOnPc); panel layout is compiled into them, see CLAUDE.md
 
 def demo(n, *extra): return [EX + "/demo", "-D", str(n), *extra]
+def aop(name): return [f"{AOP}/{name}/{name}"]
 ITEMS = [
+    ("Aurora (13 effects)",  aop("Aurora")),
+    ("Matrix rain and more", aop("Sublime_Demos")),
+    ("TwinkleFOX",           aop("TwinkleFOX")),
+    ("Table Mark Estes",     aop("Table_Mark_Estes")),
+    ("Plasma",               aop("PlasmaAnimation")),
+    ("Fireworks",            aop("FireWorks2")),
+    ("Pac-Man",              aop("LEDSprites-Pacman")),
     ("Game of Life",         demo(7, "-m", "80")),
     ("Colour evolution",     demo(10, "-m", "30")),
     ("Sandpile",             demo(6, "-m", "10")),
@@ -46,8 +55,11 @@ def stop():
 
 def start(cmd, brightness):
     stop()
+    # Merlin demos ignore flags (layout and brightness are compiled in) and expect to run from their folder.
+    merlin = cmd[0].startswith(AOP)
+    args = cmd if merlin else cmd + FLAGS + [f"--led-brightness={brightness}"]
     # New session + no stdin so it outlives this menu and the ssh connection.
-    subprocess.Popen(cmd + FLAGS + [f"--led-brightness={brightness}"], stdin=subprocess.DEVNULL,
+    subprocess.Popen(args, cwd=os.path.dirname(cmd[0]) if merlin else None, stdin=subprocess.DEVNULL,
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
 
 def ask(scr, prompt):
