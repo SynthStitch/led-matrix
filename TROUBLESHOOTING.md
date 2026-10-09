@@ -249,6 +249,7 @@ These are in [`test-programs/`](test-programs/) and are built on the Pi with `./
 | `mux-sweep.sh` | Runs `mux-test` through multiplexing settings 0–24, 5 s each, labelled | `nohup ./mux-sweep.sh &` (progress is in `/tmp/mux-now`) |
 | `row-test` | Lights one row (the last argument) in white, on every parallel port. Shows where each address really lands. | `./row-test --led-parallel=3 --led-gpio-mapping=regular 2` |
 | `toggle-b.sh` | Blanks the display and flips address line B once a second, for tracing B with a meter | `nohup ./toggle-b.sh 1800 &` |
+| `sign.py` | Arrow-key menu for the six-panel frame: demos, clock, scrolling text and tests. What it starts keeps running after you quit. Installed as `sign`. | `ssh -t pi sign` |
 | `addr-sweep.sh` | Runs `mux-test` through `--led-row-addr-type` 0–5, 15 s each, twice | `nohup ./addr-sweep.sh &` (progress is in `/tmp/addr-now`) |
 
 Library demos: `examples-api-use/demo -D0` (spinning square), `-D7` (Game of Life), `-D9` (volume bars), `-D12` (3D cube).
