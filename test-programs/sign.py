@@ -56,10 +56,17 @@ if os.path.isdir(VIDEOS):
     ITEMS[:0] = [(f"Video: {os.path.splitext(f)[0]}", ["/opt/signtest/videoplay", os.path.join(VIDEOS, f)])
                  for f in sorted(os.listdir(VIDEOS)) if f.endswith(".ledv")]
 
+# cycle.py runs as "python3 /opt/signtest/cycle.py", which PATTERN does not match; stop it first, separately,
+# so it cannot start its next design while we clean up.
+CYCLE = "/opt/signtest/cycle.py"
+CYCLE_PATTERN = r"^(/usr/bin/)?python3 /opt/signtest/cycle\.py"
+ITEMS.insert(0, ("Cycle everything", [CYCLE]))
+
 def running():
     return subprocess.run(["pgrep", "-f", PATTERN], stdout=subprocess.DEVNULL).returncode == 0
 
 def stop():
+    subprocess.run(["pkill", "-TERM", "-f", CYCLE_PATTERN])
     # Wait for the old program to exit before starting another: two at once fight over the panels.
     subprocess.run(["pkill", "-TERM", "-f", PATTERN])
     for _ in range(30):

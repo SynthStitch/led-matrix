@@ -21,7 +21,7 @@ mkdir -p $OUT $OUT/videos   # videos: .ledv files from tools/ledvideo.py, listed
 cp "$HERE"/test-programs/* $OUT/
 sed -i 's/\r$//' $OUT/*.sh $OUT/*.py $OUT/*.cc   # a Windows checkout adds CRLF, which breaks sh
 (cd $OUT && sh build.sh)
-chmod +x $OUT/*.sh $OUT/sign.py
+chmod +x $OUT/*.sh $OUT/*.py
 ln -sf $OUT/sign.py /usr/local/bin/sign
 [ -f $OUT/sign.conf ] || cp "$HERE"/sign.conf.example $OUT/sign.conf
 

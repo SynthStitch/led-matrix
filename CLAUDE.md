@@ -23,7 +23,8 @@ to choose what the panels show. The person you're helping may be new to this. Ex
    Slowdown: start at `--led-slowdown-gpio=4` on a Pi 4. Raise it if you see random pixels.
 4. **Find the panel layout** with `panel-id` (below), then write the chain, parallel and pixel-mapper flags into
    `sign.conf`. `sign.conf.example` is a worked example.
-5. **Hand over:** `ssh -t <pi> sign` opens the menu. Whatever it starts keeps running after the menu closes.
+5. **Hand over:** `ssh -t <pi> sign` opens the menu. Its first entry, "Cycle everything" (`cycle.py`), loops through
+   every video, game, shape and demo. Whatever it starts keeps running after the menu closes.
    Nothing starts at boot unless you add a systemd service.
 
 ## Finding the panel layout

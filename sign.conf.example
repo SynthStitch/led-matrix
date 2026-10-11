@@ -5,9 +5,10 @@
 # Bonnet: top row on port 2, middle on port 1, bottom on port 3, all mounted upside down.
 # Remap places each panel: one "x,y<turn>" per panel, port 1 first, starting at the panel nearest the Bonnet.
 # Turns: n = as is, s = 180, e/w = 90. If the rows were simply ports 3, 2, 1 from the top, Rotate:180 would do.
+# Mappers chain with ';' - ';Mirror:H' at the end flips the whole picture left-right.
 --led-rows=32 --led-cols=32
 --led-chain=3          # panels per port
 --led-parallel=3       # ports in use; must reach the highest port with panels on it
 --led-gpio-mapping=regular   # Triple Bonnet, Seengreat, Electrodragon. Single Adafruit HAT/Bonnet: adafruit-hat
 --led-slowdown-gpio=4  # Pi 4. Raise it if the image has random pixels
---led-pixel-mapper=Remap:96,96|0,32s|32,32s|64,32s|0,0s|32,0s|64,0s|0,64s|32,64s|64,64s
+--led-pixel-mapper=Remap:96,96|0,32s|32,32s|64,32s|0,0s|32,0s|64,0s|0,64s|32,64s|64,64s;Mirror:H
