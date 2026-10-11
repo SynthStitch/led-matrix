@@ -40,6 +40,8 @@ along each chain, then port by port (port 1 first). How to read the photo:
 - **Only the last few colours appear:** the chain is set longer than the real chain. Data for the first panels falls off the end.
 - **A whole row of panels copies another:** those rows are on different ports, so set `--led-parallel` instead.
 - **Numbers read upside down** (a 9 looks like a 6, a 7 like an L): add `--led-pixel-mapper=Rotate:180`.
+- **Rows in the wrong order** (ribbons moved between ports): use `Remap` to place each panel, rather than asking
+  for ribbons to be swapped. See `sign.conf.example` for the format.
 - Snaking or stacked layouts: see the `U-mapper`, `V-mapper` and `Rotate` mappers in the library README.
 
 ## Videos
@@ -68,7 +70,7 @@ layout is compiled in. To install on a new sign:
    `GFXDISPLAY_M<W>BY<H>` size entry next to the others, and a matching `defaults.*` block (rows, cols,
    chain_length, parallel, pixel_mapper_config, plus `pwm_bits = 7`, `pwm_lsb_nanoseconds = 100`,
    `pwm_dither_bits = 1` or it flickers). Then `mkdir -p /root/NM && echo M<W>BY<H> > /root/NM/gfxdisplay`.
-   SynthStitch's frame is `M96BY96`: rows 32, cols 32, chain 3, parallel 3, `Rotate:180`. After changing the size,
+   SynthStitch's frame is `M96BY96`: rows 32, cols 32, chain 3, parallel 3, and the same `Remap` string as `sign.conf`. After changing the size,
    delete each demo's `build/opt/aop/src/main.o` before `make`: the size is a `-D` flag, which make does not track.
 4. Patches needed on the Pi:
    - `src/cores/arduino/SerialConsole.cpp`, in `loadData()`: read into an `int` and `break` on `EOF`. Without it, a
