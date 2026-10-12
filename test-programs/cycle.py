@@ -21,6 +21,8 @@ sign = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(sign)
 
 brightness = next((a.split("=", 1)[1] for a in sys.argv[1:] if a.startswith("--led-brightness=")), "40")
+# --only WORD: cycle just the entries whose name contains WORD (e.g. "--only akira").
+only = sys.argv[sys.argv.index("--only") + 1].lower() if "--only" in sys.argv[1:-1] else None
 child = None
 
 
@@ -56,7 +58,9 @@ signal.signal(signal.SIGINT, quit_)
 while True:
     shown = 0
     for name, cmd in sign.ITEMS:
-        if cmd is None or name in SKIP or not os.path.exists(cmd[0]):
+        if cmd is None or name in SKIP or name.startswith("Cycle") or not os.path.exists(cmd[0]):
+            continue
+        if only and only not in name.lower():
             continue
         merlin = cmd[0].startswith(sign.AOP)  # Merlin demos take no flags and run from their own folder
         args = cmd if merlin else cmd + sign.FLAGS + [f"--led-brightness={brightness}"]

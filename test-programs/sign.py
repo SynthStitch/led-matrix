@@ -60,7 +60,7 @@ if os.path.isdir(VIDEOS):
 # so it cannot start its next design while we clean up.
 CYCLE = "/opt/signtest/cycle.py"
 CYCLE_PATTERN = r"^(/usr/bin/)?python3 /opt/signtest/cycle\.py"
-ITEMS.insert(0, ("Cycle everything", [CYCLE]))
+ITEMS[0:0] = [("Cycle everything", [CYCLE]), ("Cycle: Akira clips", [CYCLE, "--only", "akira"])]
 
 def running():
     return subprocess.run(["pgrep", "-f", PATTERN], stdout=subprocess.DEVNULL).returncode == 0
