@@ -7,7 +7,7 @@
     python ledvideo.py input.mp4 --size 96x64 --fps 24 --start 10 --length 30
     python ledvideo.py input.mp4 --speed 0.5      -> plays at half speed (same frames, shown more slowly)
     python ledvideo.py input.mp4 --black 40       -> anything this dark (0-255) turns fully off; LEDs show "near black" as a glow
-    python ledvideo.py input.mp4 --invert        -> swap light and dark, for white-background GIFs
+    python ledvideo.py input.mp4 --white         -> white background becomes black (other colours kept)
     python ledvideo.py input.mp4 --reverse        -> play backwards;  --mirror flips left-right, --vflip upside down
     python ledvideo.py input.mp4 --gamma 2.2 --saturation 1.4   -> tame pale, washed-out videos that blind on LEDs
     python ledvideo.py input.mp4 --level 0.6      -> turn the whole picture down to 60% (for bright, saturated videos)
@@ -29,7 +29,7 @@ MAGIC = b"LEDV"
 
 
 def convert(src, dst, w, h, fps, crop=False, start=None, length=None, stretch=False, speed=1.0, black=0,
-            reverse=False, mirror=False, vflip=False, gamma=1.0, saturation=1.0, level=1.0, invert=False):
+            reverse=False, mirror=False, vflip=False, gamma=1.0, saturation=1.0, level=1.0, white=False):
     if stretch:
         fit = f"scale={w}:{h}:flags=area"
     elif crop:
@@ -38,8 +38,8 @@ def convert(src, dst, w, h, fps, crop=False, start=None, length=None, stretch=Fa
         fit = f"scale={w}:{h}:force_original_aspect_ratio=decrease:flags=area,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2"
     if saturation != 1.0:
         fit = f"eq=saturation={saturation}," + fit
-    if invert:  # before scaling, so the black bars stay black
-        fit = "negate," + fit
+    if white:  # white background -> black; before scaling so edges blend into black, not grey
+        fit = "colorkey=white:0.1:0.05,premultiply=inplace=1,format=rgb24," + fit
     if black > 0 or gamma != 1.0 or level != 1.0:
         # gamma > 1 darkens mid-tones (pale colours look near-white on LEDs), then the dark end is cut to off
         v = f"255*pow(val/255,{gamma})"
@@ -94,7 +94,7 @@ def main():
     ap.add_argument("--gamma", type=float, default=1.0, help="above 1 darkens mid-tones; try 1.8-2.4 for pale videos")
     ap.add_argument("--level", type=float, default=1.0, help="overall brightness 0-1, e.g. 0.6 for 60%%")
     ap.add_argument("--saturation", type=float, default=1.0, help="above 1 makes colours richer; try 1.2-1.6")
-    ap.add_argument("--invert", action="store_true", help="swap light and dark (white backgrounds become black)")
+    ap.add_argument("--white", action="store_true", help="turn a white background black, keeping other colours")
     ap.add_argument("--reverse", action="store_true", help="play backwards")
     ap.add_argument("--mirror", action="store_true", help="flip left-right")
     ap.add_argument("--vflip", action="store_true", help="flip upside down")
@@ -104,7 +104,7 @@ def main():
     w, h = (int(n) for n in a.size.lower().split("x"))
     out = a.output or os.path.splitext(a.input)[0] + ".ledv"
     frames = convert(a.input, out, w, h, a.fps, a.crop, a.start, a.length, a.stretch, a.speed, a.black,
-                     a.reverse, a.mirror, a.vflip, a.gamma, a.saturation, a.level, a.invert)
+                     a.reverse, a.mirror, a.vflip, a.gamma, a.saturation, a.level, a.white)
     print(f"{out}: {frames} frames, plays for {frames / max(1, round(a.fps * a.speed)):.1f} s, {os.path.getsize(out) / 1e6:.1f} MB")
 
 
