@@ -14,7 +14,7 @@ import time
 
 OTHER_SECONDS = 45
 VIDEO_MIN, VIDEO_MAX = 20, 90
-SKIP = {"Cycle everything", "Scrolling text...", "Panel ID test", "Colour cycle test", "Clock", "Shapes: all, cycling"}
+SKIP = {"Cycle everything", "Live: TouchDesigner", "Scrolling text...", "Panel ID test", "Colour cycle test", "Clock", "Shapes: all, cycling"}
 
 _spec = importlib.util.spec_from_file_location("sign", "/opt/signtest/sign.py")
 sign = importlib.util.module_from_spec(_spec)

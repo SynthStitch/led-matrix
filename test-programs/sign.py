@@ -60,7 +60,8 @@ if os.path.isdir(VIDEOS):
 # so it cannot start its next design while we clean up.
 CYCLE = "/opt/signtest/cycle.py"
 CYCLE_PATTERN = r"^(/usr/bin/)?python3 /opt/signtest/cycle\.py"
-ITEMS[0:0] = [("Cycle everything", [CYCLE]), ("Cycle: Akira clips", [CYCLE, "--only", "akira"])]
+ITEMS[0:0] = [("Cycle everything", [CYCLE]), ("Cycle: Akira clips", [CYCLE, "--only", "akira"]),
+              ("Live: TouchDesigner", ["/opt/signtest/tdlive"])]  # 96x96 rgb24 frames on UDP 5005
 
 def running():
     return subprocess.run(["pgrep", "-f", PATTERN], stdout=subprocess.DEVNULL).returncode == 0
