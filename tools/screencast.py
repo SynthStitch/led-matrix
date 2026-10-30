@@ -78,13 +78,12 @@ def main():
 
     def keys():  # Enter = next screen
         try:
-            lines = iter(input, None)
-        except EOFError:
-            return
-        for _ in lines:
-            current[0] = 0 if current[0] is None else (current[0] + 1) % len(screens)
-            print(f"Screen {current[0] + 1} of {len(screens)}", flush=True)
-            switched.set()
+            for _ in iter(input, None):
+                current[0] = 0 if current[0] is None else (current[0] + 1) % len(screens)
+                print(f"Screen {current[0] + 1} of {len(screens)}", flush=True)
+                switched.set()
+        except EOFError:  # no keyboard (run in the background): just keep mirroring
+            pass
 
     threading.Thread(target=keys, daemon=True).start()
     family, dest = target(a.to or pi_address())
